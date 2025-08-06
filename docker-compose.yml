@@ -1,0 +1,44 @@
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: event-booking-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=event_booking_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - event-network
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d event_booking_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  event-booking-api:
+    build: .
+    container_name: event-booking-api
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/event_booking_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=root
+    networks:
+      - event-network
+
+networks:
+  event-network:
+    driver: bridge
+
+volumes:
+  postgres-data: {}
